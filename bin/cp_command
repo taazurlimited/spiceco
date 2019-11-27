@@ -1,0 +1,9 @@
+#!/bin/bash
+
+cd ../..
+bench --site test.tailerp.com migrate
+cp ~/apps/spiceco/spiceco/core_scripts/expense_claim.py ~/tailpost_bench/apps/erpnext/erpnext/hr/doctype/expense_claim/expense_claim.py
+cp ~/apps/spiceco/spiceco/core_scripts/travel_request_dashboard.py ~/tailpost_bench/apps/erpnext/erpnext/hr/doctype/travel_request/travel_request_dashboard.py
+
+echo okay nku!
+

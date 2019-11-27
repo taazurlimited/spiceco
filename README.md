@@ -1,1 +1,7 @@
-# spiceco
+## spiceco
+
+spiceco
+
+#### License
+
+MIT

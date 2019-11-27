@@ -1,0 +1,18 @@
+include MANIFEST.in
+include requirements.txt
+include *.json
+include *.md
+include *.py
+include *.txt
+recursive-include spiceco *.css
+recursive-include spiceco *.csv
+recursive-include spiceco *.html
+recursive-include spiceco *.ico
+recursive-include spiceco *.js
+recursive-include spiceco *.json
+recursive-include spiceco *.md
+recursive-include spiceco *.png
+recursive-include spiceco *.py
+recursive-include spiceco *.svg
+recursive-include spiceco *.txt
+recursive-exclude spiceco *.pyc

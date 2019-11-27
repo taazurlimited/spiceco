@@ -1,0 +1,2 @@
+import frappe
+frappe.get_list("Account", filters={'name':acc}, fields=['account_currency'])
