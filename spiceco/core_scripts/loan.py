@@ -13,10 +13,14 @@ class Loan(AccountsController):
 	def validate(self):
 		validate_repayment_method(self.repayment_method, self.loan_amount, self.monthly_repayment_amount, self.repayment_periods)
 		self.set_missing_fields()
+		print(self.repayment_periods)
+		print(self.loan_repayment_period_in_months)
 		if not len(self.loan_repayment_schedule) and self.docstatus==0:
+			
 			self.make_repayment_schedule()
-		if not len(self.repayment_schedule):
-			self.make_repayment_schedule()
+		
+
+		# self.make_repayment_schedule()
 		self.set_repayment_period()
 		self.calculate_totals()
 

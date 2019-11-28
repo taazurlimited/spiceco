@@ -16,14 +16,23 @@ def validate(applicant,loan_amount):
 @frappe.whitelist()
 def update_repayment_sched(name,rp,rsd):
     doc=frappe.get_doc("Loan",{'name':name})
-    if not len(doc.repayment_schedule):
+    print(doc.repayment_periods)
+    print(rp)
+    print(doc.repayment_start_date)
+    print(rsd)
+    if doc.repayment_periods!=int(rp) or str(doc.repayment_start_date)!=rsd:
         doc.repayment_periods=int(rp)
         doc.repayment_start_date=rsd
+        frappe.db.sql("""Update `tabLoan` set repayment_periods=%s,repayment_start_date=%s where name=%s""",(int(rp),rsd,name))
         frappe.db.sql("""Delete from `tabRepayment Schedule` where parent=%s""",(name))
+        frappe.db.sql("""Delete from `tabLoan Repayment Schedule` where parent=%s""",(name))
+        
+        
         doc.validate()
+        doc.make_repayment_schedule()
         
         count=1
-        
+        print(doc.repayment_schedule)
         for i in doc.repayment_schedule:
             new_rp=frappe.get_doc({
                 "doctype": "Repayment Schedule",
@@ -38,7 +47,7 @@ def update_repayment_sched(name,rp,rsd):
                 "parenttype": "Loan",
                 "idx": count
                 })
-            count+=1
+            
             new_rp.save()
             new_rp1=frappe.get_doc({
                 "doctype": "Loan Repayment Schedule",
@@ -61,31 +70,37 @@ def update_repayment_sched(name,rp,rsd):
     
 
 @frappe.whitelist()
-def generate_data_for_lrs(name):
+def generate_data_for_lrs(name,rp,rsd):
     
     frappe.db.sql("""Delete from `tabLoan Repayment Schedule` where parent=%s""",(name))
-    repayment_schedule=frappe.db.sql("""Select payment_date,principal_amount,interest_amount,total_payment,balance_loan_amount,paid,name,idx from `tabRepayment Schedule` where parent=%s""",(name))
-    for i in repayment_schedule:
+    repayment_schedule=frappe.get_doc("Loan",{'name':name})
+    
+    if repayment_schedule.repayment_periods!=int(rp) or str(repayment_schedule.repayment_start_date)!=rsd:
+        repayment_schedule.make_repayment_schedule()
+        repayment_schedule.validate()
+        repayment_schedule.save()
+    # repayment_schedule=frappe.db.sql("""Select payment_date,principal_amount,interest_amount,total_payment,balance_loan_amount,paid,name,idx from `tabRepayment Schedule` where parent=%s""",(name))
+    for i in repayment_schedule.repayment_schedule:
         new_rp=frappe.get_doc({
             "doctype": "Loan Repayment Schedule",
-            "payment_date1":i[0],
-            "principal_amount1": i[1],
-            "interest_amount1": i[2],
-            "total_payment1": i[3],
-            "balance_loan_amount1": i[4],
-            "paid1": i[5],
-            "source": i[6],
+            "payment_date1":i.payment_date,
+            "principal_amount1": i.principal_amount,
+            "interest_amount1": i.interest_amount,
+            "total_payment1": i.total_payment,
+            "balance_loan_amount1": i.balance_loan_amount,
+            "paid1": i.paid,
+            "source": i.name,
             "parent": name,
             "parentfield": "loan_repayment_schedule",
             "parenttype": "Loan",
-            "idx": i[7]
+            "idx": i.idx
             })
         new_rp.save()
     return 0
             
 @frappe.whitelist()
-def set_repayment_schedule(name,source,parent,payment_date):
-    loan_repayment_schedule=frappe.db.sql("""Select payment_date1,principal_amount1,interest_amount1,total_payment1,balance_loan_amount1,paid1,idx,source from `tabLoan Repayment Schedule` where name=%s""",(name))
+def set_repayment_schedule(parent):
+    # loan_repayment_schedule=frappe.db.sql("""Select payment_date1,principal_amount1,interest_amount1,total_payment1,balance_loan_amount1,paid1,idx,source from `tabLoan Repayment Schedule` where name=%s""",(name))
     frappe.db.sql("""Update `tabLoan` set docstatus=0 where name=%s""",(parent))
     # frappe.db.sql("""Delete from `tabRepayment Schedule` where name=%s""",(source))
     # for i in loan_repayment_schedule:
