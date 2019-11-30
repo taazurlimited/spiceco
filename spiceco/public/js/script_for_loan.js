@@ -24,14 +24,40 @@ frappe.ui.form.on('Loan',  {
             frm.set_df_property("loan_repayment_start_date", "read_only", 1);
             frm.get_field("loan_repayment_schedule").grid.fields_map.payment_date1.read_only=1;            
         }
+        
         if(frm.doc.docstatus==1){
-            // hide standard fields during submit status and show custom fields
             frm.set_df_property("repayment_periods", "hidden", 1);
             frm.set_df_property("repayment_start_date", "hidden", 1);
             frm.set_df_property("repayment_schedule", "hidden", 1);
-            frm.set_df_property("loan_repayment_period_in_months", "hidden", 0);
-            frm.set_df_property("loan_repayment_start_date", "hidden", 0);
-            frm.set_df_property("loan_repayment_schedule", "hidden", 0);
+            frappe.call({
+                method: "spiceco.loan.check_if_loan_deduction_started",
+                args:{
+                    'start_date': frm.doc.loan_repayment_start_date,
+                    'name': frm.doc.name
+                },
+                callback: function(response){
+                    if(!response.message){
+                        // hide standard fields during submit status and show custom fields
+                        frm.set_df_property("loan_repayment_period_in_months", "hidden", 0);
+                        frm.set_df_property("loan_repayment_start_date", "hidden", 0);
+                        frm.set_df_property("loan_repayment_schedule", "hidden", 0);
+                        
+                        frm.set_df_property("repayment_periods", "hidden", 1);
+                        frm.set_df_property("repayment_start_date", "hidden", 1);
+                        frm.set_df_property("repayment_schedule", "hidden", 1);
+                    }else{
+                        frm.set_df_property("loan_repayment_period_in_months", "hidden", 1);
+                        frm.set_df_property("loan_repayment_start_date", "hidden", 1);
+                        frm.set_df_property("loan_repayment_schedule", "hidden", 0);
+                        
+                        frm.set_df_property("repayment_periods", "hidden", 0);
+                        frm.set_df_property("repayment_start_date", "hidden", 0);
+                        frm.set_df_property("repayment_schedule", "hidden", 1);
+                    }
+                }
+            })
+            
+            
             
         }else{
             // show standard fields during draft status and hide custom fields
@@ -41,6 +67,9 @@ frappe.ui.form.on('Loan',  {
             frm.set_df_property("repayment_schedule", "hidden", 0);
             frm.set_df_property("repayment_periods", "hidden", 0);
             frm.set_df_property("repayment_start_date", "hidden", 0);
+            frm.set_df_property("repayment_schedule", "read_only", 0);
+            frm.set_df_property("repayment_periods", "read_only", 0);
+            frm.set_df_property("repayment_start_date", "read_only", 0);
         }
         if(frm.doc.loan_repayment_period_in_months==undefined || !frm.doc.loan_repayment_period_in_months && frm.doc.docstatus==1){
             // during submitted, update loan repayment period if it's not equal to its standard field
@@ -89,12 +118,6 @@ frappe.ui.form.on('Loan',  {
         
             
     },
-    // 'repayment_start_date': function(frm){
-    //     frm.doc.loan_repayment_start_date=frm.doc.repayment_start_date;
-    // },
-    // 'repayment_periods': function(frm){
-    //     frm.doc.loan_repayment_period_in_months=frm.doc.repayment_periods;
-    // },
     after_save: function(frm){
         if(frm.doc.docstatus == 1){
             // loan repayment schedule changed on submit status
@@ -129,21 +152,31 @@ frappe.ui.form.on('Loan',  {
 });
 frappe.ui.form.on('Loan Repayment Schedule',  {
     'payment_date1': function(frm,dt,dn) {
-        locals['Repayment Schedule'][locals[dt][dn].source].payment_date=locals[dt][dn].payment_date1;
-        console.log(locals['Repayment Schedule'][locals[dt][dn].source]);
         frappe.call({
-            method: "spiceco.loan.set_repayment_schedule",
-            args:{
-                'parent': frm.doc.name,
-            },
-            callback: function(response){
-                
-                
-                
-            }
-        })
-    }
+                method: "spiceco.loan.check_loan_schedule",
+                args:{
+                    'name': dn
+                },
+                callback: function(responsee){
+                   
+                    if(responsee.message!=0){
+                        locals[dt][dn].payment_date1=responsee.message;
+                        frm.refresh_field('loan_repayment_schedule');
+                        frappe.msgprint('Loan Schedule that is already paid through salary can\'t be updated.' );
+                    }else{
+                        locals['Repayment Schedule'][locals[dt][dn].source].payment_date=locals[dt][dn].payment_date1;
+                        console.log(locals['Repayment Schedule'][locals[dt][dn].source]);
+                        frappe.call({
+                            method: "spiceco.loan.set_repayment_schedule",
+                            args:{
+                                'parent': frm.doc.name,
+                            },
+                            
+                        })
+                    }
+                }
+            })
+        }
 });
-
 
 

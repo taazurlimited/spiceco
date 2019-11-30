@@ -100,24 +100,24 @@ def generate_data_for_lrs(name,rp,rsd):
             
 @frappe.whitelist()
 def set_repayment_schedule(parent):
-    # loan_repayment_schedule=frappe.db.sql("""Select payment_date1,principal_amount1,interest_amount1,total_payment1,balance_loan_amount1,paid1,idx,source from `tabLoan Repayment Schedule` where name=%s""",(name))
-    frappe.db.sql("""Update `tabLoan` set docstatus=0 where name=%s""",(parent))
-    # frappe.db.sql("""Delete from `tabRepayment Schedule` where name=%s""",(source))
-    # for i in loan_repayment_schedule:
-    #     new_rp=frappe.get_doc({
-    #                 "doctype": "Repayment Schedule",
-    #                 "payment_date":payment_date,
-    #                 "principal_amount": i[1],
-    #                 "interest_amount": i[2],
-    #                 "total_payment": i[3],
-    #                 "balance_loan_amount": i[4],
-    #                 "paid": i[5],
-    #                 "parent": parent,
-    #                 "parentfield": "repayment_schedule",
-    #                 "parenttype": "Loan",
-    #                 "idx": i[6]
-    #                 })
-    #     new_rp.save()
-    #     # return new_rp.name
-    #     frappe.db.sql("""Update `tabLoan Repayment Schedule` set source=%s,payment_date1=%s where name=%s""",(new_rp.name,payment_date,name))
-    #     return new_rp.name
+    frappe.db.sql("""Update `tabLoan` set docstatus=%s where name=%s""",(parent))
+   
+
+@frappe.whitelist()
+def check_if_loan_deduction_started(start_date,name):
+    salary_slips=frappe.db.sql("""Select name from `tabSalary Slip` where start_date <= %s and end_date>=%s""",(start_date,start_date))
+    for i in salary_slips:
+        for ii in frappe.get_list("Salary Slip Loan",filters={'parent':i[0]}):
+            return 1
+    return 0
+    
+
+@frappe.whitelist()
+def check_loan_schedule(name):
+    loans=frappe.get_list("Loan Repayment Schedule",filters={'name':name},fields=['payment_date1'])
+    cannot_be_changed=0
+    for i in loans:
+        salary_slips=frappe.db.sql("""Select name from `tabSalary Slip` where start_date <= %s and end_date>=%s""",(i['payment_date1'],i['payment_date1']))
+        if len(salary_slips)>0:
+            cannot_be_changed=i['payment_date1']
+    return cannot_be_changed   
